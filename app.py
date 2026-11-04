@@ -1,4 +1,4 @@
-"""ABLE AI Workspace | Streamlit entrypoint.
+"""AIVLE AI Workspace | Streamlit entrypoint.
 
 Single-user MVP. All task-changing AI operations require explicit confirmation.
 Do not publish personal task records or credentials in your GitHub repository.
@@ -26,27 +26,33 @@ from storage.store import (
     import_merge, log, norm_name, undo_last, update_task, validate_date,
 )
 
-st.set_page_config(page_title="에이블 ABLE | AI 업무 비서", page_icon="🤖", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="AIVLE AI Workspace", page_icon="💠", layout="wide", initial_sidebar_state="expanded")
 KST = ZoneInfo("Asia/Seoul")
 PAGES = ["대시보드", "스마트 캘린더", "업무 관리", "AI 비서", "문서 도구", "팀 협업", "활동 기록"]
 
 st.markdown("""<style>
 :root {color-scheme:light}
-[data-testid="stAppViewContainer"] {background:#f4f7fd}
-[data-testid="stSidebar"] {background:#14274b}
-[data-testid="stSidebar"] * {color:#e7eeff}
-[data-testid="stSidebar"] [role="radiogroup"] label {padding:10px 8px;border-radius:9px}
-[data-testid="stSidebar"] [role="radiogroup"] label:hover {background:#243e70}
-.block-container {max-width:1450px;padding-top:1.5rem;padding-bottom:3rem}
-h1,h2,h3 {color:#182844;letter-spacing:-.035em}
-div[data-testid="stMetric"] {background:white;padding:15px 18px;border:1px solid #e1e8f4;border-radius:15px}
-div[data-testid="stVerticalBlockBorderWrapper"] {border-radius:15px}
-[data-testid="stChatMessage"] {background:white;border:1px solid #e4eaf4;border-radius:14px}
-.stButton button[kind="primary"],.stFormSubmitButton button[kind="primary"] {background:#6559ef;border-color:#6559ef}
-.hero {padding:24px 28px;color:white;background:linear-gradient(115deg,#303775,#7668e8);border-radius:18px;margin:4px 0 22px}
-.hero h2 {color:white;margin:4px 0 10px;font-size:1.55rem}
-.hero p {color:#ecebff;margin:0}
-.info-strip {padding:12px 16px;background:white;border:1px solid #e3e9f4;border-radius:12px;margin-bottom:14px;color:#465574}
+[data-testid="stAppViewContainer"] {background:#f5fbfb}
+[data-testid="stHeader"] {background:rgba(245,251,251,.92)}
+[data-testid="stSidebar"] {background:linear-gradient(180deg,#0b5460 0%, #0d6772 45%, #0f7d86 100%)}
+[data-testid="stSidebar"] * {color:#efffff}
+[data-testid="stSidebar"] [role="radiogroup"] label {padding:10px 10px;border-radius:10px;margin-bottom:4px}
+[data-testid="stSidebar"] [role="radiogroup"] label:hover {background:rgba(255,255,255,.11)}
+.block-container {max-width:1450px;padding-top:1.35rem;padding-bottom:3rem}
+h1,h2,h3 {color:#113a42;letter-spacing:-.035em}
+p, label, div {font-size:0.98rem}
+div[data-testid="stMetric"] {background:white;padding:15px 18px;border:1px solid #d8ecec;border-radius:16px;box-shadow:0 10px 24px rgba(11,84,96,.05)}
+div[data-testid="stVerticalBlockBorderWrapper"] {border-radius:16px}
+[data-testid="stChatMessage"] {background:white;border:1px solid #deeff0;border-radius:14px}
+.stButton button[kind="primary"], .stFormSubmitButton button[kind="primary"] {background:#12a9ad;border-color:#12a9ad;color:white}
+.stButton button[kind="secondary"], .stDownloadButton button {border-radius:10px}
+.hero {padding:26px 30px;color:white;background:linear-gradient(115deg,#0d6d78,#12a9ad 58%,#54c9c3 100%);border-radius:20px;margin:4px 0 22px;box-shadow:0 16px 36px rgba(13,109,120,.15)}
+.hero h2 {color:white;margin:4px 0 10px;font-size:1.65rem}
+.hero p {color:#ecffff;margin:0}
+.info-strip {padding:12px 16px;background:white;border:1px solid #dceff0;border-radius:12px;margin-bottom:14px;color:#43656b}
+.soft-card {padding:14px 16px;background:#ffffff;border:1px solid #dceff0;border-radius:14px}
+.muted-note {color:#658489;font-size:.9rem}
+[data-testid="stSidebarNav"] {display:none}
 </style>""", unsafe_allow_html=True)
 
 
@@ -141,7 +147,7 @@ def show_task_rows(tasks, limit=None):
 
 
 def dashboard(data):
-    st.markdown(f'<div class="hero"><small>YOUR AI WORK PARTNER</small><h2>에이블과 함께 업무를 관리하세요.</h2><p>오늘은 {today()}입니다. 새로운 업무는 AI 제안 확인 후 등록됩니다.</p></div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="hero"><small>YOUR AI WORK PARTNER</small><h2>AIVLE과 함께 업무를 관리하세요.</h2><p>오늘은 {today()}입니다. 새로운 업무는 AI 제안 확인 후 등록됩니다.</p></div>', unsafe_allow_html=True)
     metrics(data["tasks"])
     left, right = st.columns([2, 1], gap="large")
     with left:
@@ -396,8 +402,9 @@ def chat_handle(message: str, data):
 
 
 def assistant_page(data):
-    st.title("에이블 AI 비서")
+    st.title("AIVLE AI 비서")
     st.caption("실제 OpenAI API 연결 · 승인 기반 업무 변경 · STT/TTS · 프롬프트 개선")
+    st.info("중요 작업은 AI가 바로 저장하지 않고, 사용자 승인 후 반영됩니다.")
     tab_chat, tab_prompt, tab_email = st.tabs(["💬 AI 대화 / 음성", "✨ 프롬프트 개선", "✉️ 이메일 발송"])
     with tab_chat:
         left, right = st.columns([3, 1], gap="large")
@@ -470,7 +477,7 @@ def assistant_page(data):
                     msg = st.session_state.voice_transcript
                     st.session_state.voice_transcript = ""
                     chat_handle(msg, data)
-            message = st.chat_input("에이블, 11월 20일까지 발표 자료를 등록해 줘")
+            message = st.chat_input("AIVLE, 11월 20일까지 발표 자료를 등록해 줘")
             if message:
                 chat_handle(message, data)
     with tab_prompt:
@@ -668,6 +675,7 @@ def docs_page(data):
 
 def collaboration_page(data):
     st.title("팀 협업")
+    st.caption("현재는 데모가 아닌 단일 사용자 MVP를 우선 완성한 상태입니다.")
     st.info("현재 버전은 단일 사용자 MVP입니다. 다른 팀원 계정 로그인·공동 편집은 아직 연결하지 않았습니다.")
     st.write("공유된 개인 업무를 무단으로 노출하지 않도록 팀 기능을 비활성화했습니다.")
     st.markdown("**추후 확장:** Supabase Auth 사용자별 계정, Row Level Security 정책, 팀별 공유 권한, 변경 충돌 처리")
@@ -676,6 +684,7 @@ def collaboration_page(data):
 
 def activity_page(data):
     st.title("활동 기록")
+    st.caption("최근 변경 이력과 취소 기록을 확인합니다.")
     c1, c2 = st.columns([1, 5])
     if c1.button("↶ 최근 변경 취소", use_container_width=True):
         if mutate(undo_last, "최근 업무 변경을 되돌렸습니다.") is not None:
@@ -711,11 +720,8 @@ def main():
     bootstrap()
     store = storage()
     configured_pin = secret("APP_PASSWORD")
-    if store.remote and not configured_pin:
-        st.error("보안 설정 필요: 외부 DB를 사용하는 경우 Secrets에 APP_PASSWORD를 설정해야 합니다.")
-        st.stop()
     if configured_pin and not st.session_state.get("authenticated"):
-        st.title("🔐 에이블 업무비서 로그인")
+        st.title("🔐 AIVLE 업무비서 로그인")
         with st.form("authform"):
             pin = st.text_input("접속 비밀번호", type="password")
             submitted = st.form_submit_button("로그인", type="primary")
@@ -728,17 +734,19 @@ def main():
                 st.error("비밀번호가 일치하지 않습니다.")
         st.stop()
     with st.sidebar:
-        st.markdown("## 🤖 에이블 ABLE")
-        st.caption("AI PERSONAL WORKSPACE")
+        st.markdown("## 💠 AIVLE")
+        st.caption("KT AIVLE SCHOOL · AI PERSONAL WORKSPACE")
         st.radio("메뉴", PAGES, key="page")
         st.divider()
-        st.caption(f"저장 방식: {store.mode}")
-        if store.remote:
-            st.success("외부 DB 연결됨")
-        else:
-            st.warning("로컬 JSON: 클라우드 재시작 시 업무가 사라질 수 있음")
-        if not secret("OPENAI_API_KEY"):
-            st.warning("OPENAI_API_KEY 미설정: AI 기능 비활성")
+        st.caption("업무·캘린더·AI 비서는 동일한 저장소를 함께 사용합니다.")
+        with st.expander("환경 정보", expanded=False):
+            st.write(f"저장 방식: {store.mode}")
+            if store.remote:
+                st.success("외부 DB 연결됨")
+            else:
+                st.caption("현재는 로컬 JSON 저장입니다. 재배포/재시작 시 데이터가 사라질 수 있습니다.")
+            if not secret("OPENAI_API_KEY"):
+                st.warning("OPENAI_API_KEY 미설정: AI 기능 비활성")
         if configured_pin and st.button("로그아웃"):
             st.session_state.authenticated = False
             st.rerun()
