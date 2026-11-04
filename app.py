@@ -20,94 +20,43 @@ from services.ai import (
     plan_chat, stt, today, tts, web_search,
 )
 from services.documents import extract_text
+from services.calendar_rules import calendar_day_style
 from services.emailer import send_email
 from storage.store import (
     PRIORITIES, STATUSES, Store, add_task, delete_task, fingerprint,
-    import_merge, log, norm_name, undo_last, update_task, validate_date,
+    log, norm_name, undo_last, update_task, validate_date,
 )
 
 st.set_page_config(page_title="AIVLE AI Workspace", page_icon="💠", layout="wide", initial_sidebar_state="expanded")
 KST = ZoneInfo("Asia/Seoul")
 PAGES = ["대시보드", "스마트 캘린더", "업무 관리", "AI 비서", "문서 도구", "팀 협업", "활동 기록"]
 
-# 하나의 토글만 사용해 페이지 전체 색상을 동기화합니다. (Streamlit 메뉴의 별도 테마 전환과 혼용하지 않기)
-_THEME_BASE = """<style>
-.block-container {max-width:1450px;padding-top:1.35rem;padding-bottom:3rem}
-[data-testid="stSidebar"] [role="radiogroup"] label {padding:10px 10px;border-radius:10px;margin-bottom:4px}
-div[data-testid="stMetric"] {padding:15px 18px;border-radius:16px;box-shadow:0 10px 24px rgba(0,0,0,.05)}
-div[data-testid="stVerticalBlockBorderWrapper"] {border-radius:16px}
-[data-testid="stChatMessage"] {border-radius:14px}
-.hero {padding:26px 30px;border-radius:20px;margin:4px 0 22px;box-shadow:0 16px 36px rgba(0,0,0,.10)}
-.hero h2 {margin:4px 0 10px;font-size:1.65rem}
-.hero p {margin:0}
-.info-strip {padding:12px 16px;border-radius:12px;margin-bottom:14px}
-.stButton button,.stFormSubmitButton button {border-radius:10px}
-</style>"""
-_THEME_LIGHT = """<style>
-html,body,[data-testid="stApp"],[data-testid="stAppViewContainer"],[data-testid="stMain"] {background:#f5fbfb!important;color:#16363e!important}
-[data-testid="stHeader"] {background:#f5fbfb!important}
-[data-testid="stSidebar"] {background:linear-gradient(180deg,#0b5460,#0f7d86)!important}
-[data-testid="stSidebar"] :is(h1,h2,h3,p,span,label,div) {color:#f3ffff}
-[data-testid="stSidebar"] [role="radiogroup"] label:hover {background:rgba(255,255,255,.12)}
-[data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked) {background:rgba(255,255,255,.17)}
-[data-testid="stAppViewContainer"] :is(h1,h2,h3,h4) {color:#113a42!important}
-[data-testid="stAppViewContainer"] [data-testid="stMarkdownContainer"] :is(p,li,strong) {color:#173f48}
-[data-testid="stMetric"] {background:#fff!important;border:1px solid #d4e9e9!important}
-[data-testid="stMetric"] :is([data-testid="stMetricLabel"],[data-testid="stMetricValue"],[data-testid="stMetricValue"] *,label) {color:#163942!important}
-[data-testid="stChatMessage"] {background:#fff!important;border:1px solid #dfeded!important}
-[data-testid="stAppViewContainer"] .stButton button[kind="primary"],
-[data-testid="stAppViewContainer"] .stFormSubmitButton button[kind="primary"] {background:#119da4!important;border:1px solid #119da4!important;color:#fff!important}
-[data-testid="stAppViewContainer"] .stButton button[kind="secondary"],
-[data-testid="stAppViewContainer"] .stDownloadButton button {background:#fff!important;color:#17444c!important;border:1px solid #c7dfdf!important}
-.hero {background:linear-gradient(115deg,#0b7681,#12a9ad 58%,#54c9c3)!important;color:#fff!important}
-.hero :is(h2,p,small) {color:#fff!important}
-.info-strip {background:#fff!important;color:#31545b!important;border:1px solid #dceff0!important}
-</style>"""
-_THEME_DARK = """<style>
-/* 짙은 회색 배경, 회색 내비게이션, 밝은 글씨. teal/white 잔상 금지. */
-html, body, #root, [data-testid="stApp"], [data-testid="stAppViewContainer"], [data-testid="stMain"] {background:#181e23!important;color:#eef2f4!important}
-[data-testid="stHeader"] {background:#181e23!important}
-[data-testid="stSidebar"] {background:linear-gradient(180deg,#252d34,#303941)!important}
-[data-testid="stSidebar"] :is(h1,h2,h3,p,span,label,div) {color:#f0f3f5!important}
-[data-testid="stSidebar"] [role="radiogroup"] label:hover {background:#424c56!important}
-[data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked) {background:#4c5863!important}
-[data-testid="stAppViewContainer"] :is(h1,h2,h3,h4,h5,h6) {color:#f3f5f7!important}
-[data-testid="stAppViewContainer"] [data-testid="stMarkdownContainer"] :is(p,li,strong,em,span) {color:#e5ebee!important}
-[data-testid="stAppViewContainer"] :is(label, small, time) {color:#d6dee3!important}
-[data-testid="stAppViewContainer"] [data-testid="stCaptionContainer"] * {color:#b8c7cd!important}
-[data-testid="stMetric"] {background:#293139!important;border:1px solid #44505a!important}
-[data-testid="stMetric"] :is([data-testid="stMetricLabel"],[data-testid="stMetricValue"],[data-testid="stMetricValue"] *,label,p,div,span) {color:#f1f4f6!important}
-[data-testid="stChatMessage"], [data-testid="stForm"] {background:#252d34!important;border:1px solid #404b55!important}
-[data-testid="stVerticalBlockBorderWrapper"] {border-color:#46515a!important}
-[data-testid="stAppViewContainer"] [data-testid="stExpander"] {background:#252d34!important;border-color:#45515c!important;border-radius:12px}
-[data-testid="stAppViewContainer"] [data-testid="stExpander"] summary * {color:#e8eef2!important}
-[data-testid="stAppViewContainer"] input,
-[data-testid="stAppViewContainer"] textarea,
-[data-testid="stAppViewContainer"] [data-baseweb="select"] > div,
-[data-testid="stAppViewContainer"] [data-baseweb="input"] > div,
-[data-testid="stAppViewContainer"] [data-baseweb="textarea"] > div {background:#252e35!important;color:#eef2f4!important;border-color:#57636e!important}
-[data-testid="stAppViewContainer"] :is(input,textarea)::placeholder {color:#b4c1ca!important}
-[data-testid="stAppViewContainer"] [data-testid="stFileUploader"] section {background:#252e35!important;border-color:#57636e!important}
-[data-testid="stAppViewContainer"] .stButton button[kind="primary"],
-[data-testid="stAppViewContainer"] .stFormSubmitButton button[kind="primary"] {background:#6b7884!important;color:#fff!important;border:1px solid #85929d!important}
-[data-testid="stAppViewContainer"] .stButton button[kind="secondary"],
-[data-testid="stAppViewContainer"] .stDownloadButton button {background:#343e47!important;color:#f3f5f7!important;border:1px solid #65727d!important}
-[data-testid="stAppViewContainer"] :is(.stButton button,.stFormSubmitButton button) * {color:inherit!important}
-[data-testid="stAppViewContainer"] [data-testid="stTabs"] button {color:#cbd6dc!important}
-[data-testid="stAppViewContainer"] [data-testid="stTabs"] button[aria-selected="true"] {color:#fff!important}
-[data-testid="stAppViewContainer"] [data-baseweb="tab-highlight"] {background:#b1bdc6!important}
-[data-testid="stAppViewContainer"] [data-testid="stAlert"] {background:#2b3b45!important;border:1px solid #445966!important}
-[data-testid="stAppViewContainer"] [data-testid="stAlert"] * {color:#e2edf3!important}
-[data-testid="stAppViewContainer"] hr {border-color:#414d56!important}
-.hero {background:linear-gradient(115deg,#303840,#47535d 58%,#5f6c77)!important;color:#fff!important}
-.hero :is(h2,p,small) {color:#fff!important}
-.info-strip {background:#293139!important;color:#e4ebee!important;border:1px solid #46515a!important}
-</style>"""
+# Use Streamlit's native light/dark themes in .streamlit/config.toml.
+# This avoids CSS conflicts that previously made text disappear in dark mode.
+def is_dark_mode() -> bool:
+    try:
+        return st.context.theme.type == "dark"
+    except (AttributeError, RuntimeError):
+        return False
 
 
 def apply_visual_theme():
-    palette = _THEME_DARK if st.session_state.get("dark_mode", False) else _THEME_LIGHT
-    st.markdown(_THEME_BASE + palette, unsafe_allow_html=True)
+    """Only lightly style the hero and spacing; never override widget theme colors."""
+    hero = ("linear-gradient(115deg,#343d46,#505b66 60%,#68737c)"
+            if is_dark_mode() else
+            "linear-gradient(115deg,#0c7780,#12a9ad 55%,#54c9c3)")
+    st.markdown(f"""<style>
+        .block-container {{max-width:1450px;padding-top:1.4rem;padding-bottom:2.5rem}}
+        .hero {{padding:26px 30px;border-radius:18px;margin:4px 0 22px;
+                background:{hero};color:#ffffff;}}
+        .hero h2,.hero p,.hero small {{color:#ffffff!important}}
+        .hero h2 {{margin:6px 0 10px;font-size:1.6rem}}
+        .hero p {{margin:0}}
+        [data-testid="stMetric"] {{border:1px solid rgba(130,150,160,.30);
+                                     border-radius:14px;padding:13px 16px}}
+        .info-strip {{padding:12px 16px;border-radius:10px;
+                      border:1px solid rgba(130,150,160,.35);margin-bottom:14px}}
+    </style>""",unsafe_allow_html=True)
 
 
 def secret(name: str, default="") -> str:
@@ -242,7 +191,7 @@ def dashboard(data):
 
 def calendar_page(data):
     st.title("스마트 캘린더")
-    st.caption("파란 테두리: 오늘 / 빨강: 미완료 마감 / 초록: 완료 업무 / 보라: 선택한 날짜")
+    st.caption("오늘: 파란 테두리 · 미완료 마감일: 빨간 배경 · 완료만 있는 날: 초록 배경 · 선택 날짜: 안쪽 표시")
     c1, c2, c3 = st.columns([1, 2, 1])
     with c1:
         if st.button("◀ 이전 달"):
@@ -275,28 +224,27 @@ def calendar_page(data):
                 continue
             key_date = date(st.session_state.cal_year, st.session_state.cal_month, day).isoformat()
             bucket = by_day.get(key_date, [])
-            waiting = any(t.get("status") != "완료" for t in bucket)
-            done = any(t.get("status") == "완료" for t in bucket)
             css_key = f"cal_{key_date.replace('-', '_')}"
-            if st.session_state.get("dark_mode", False):
-                bg = "#54383e" if waiting else ("#29463e" if done else "#29323a")
-                outline = "#b7c7d0" if key_date == today() else "#414b55"
-                if key_date == st.session_state.cal_selected:
-                    bg, outline = "#4d5761", "#e0e7eb"
-                text_color = "#f3f5f7"
-            else:
-                bg = "#ffe1e4" if waiting else ("#dff8eb" if done else "#ffffff")
-                outline = "#4e78e8" if key_date == today() else "#e2e7f2"
-                if key_date == st.session_state.cal_selected:
-                    bg, outline = "#eeeaff", "#6559ef"
-                text_color = "#152d35"
-            rules.append(f'.st-key-{css_key} button {{background:{bg};color:{text_color};border:2px solid {outline};min-height:64px;width:100%;font-weight:650}}')
-            label = f"{day}  · {len(bucket)}건" if bucket else str(day)
+            display = calendar_day_style(key_date, data["tasks"], today(),
+                                         selected=(key_date == st.session_state.cal_selected),
+                                         dark=is_dark_mode())
+            # Important: 'today' always has a BLUE outline, even if selected or overdue.
+            # Use key-based CSS targeting (Streamlit official convention).
+            rules.append(
+                f'.st-key-{css_key} button {{background:{display["background"]}!important;'
+                f'color:{display["text"]}!important;'
+                f'border:{"3px" if display["today"] else "1px"} solid {display["border"]}!important;'
+                f'box-shadow:{display["ring"]}!important;min-height:64px;width:100%;font-weight:700;}}'
+                f'.st-key-{css_key} button * {{color:{display["text"]}!important}}'
+            )
+            suffix = " · 오늘" if display["today"] else ""
+            count_label = f" · {display['count']}건" if display["count"] else ""
+            label = f"{day}{suffix}{count_label}"
             with cols[i]:
                 if st.button(label, key=css_key, use_container_width=True):
                     st.session_state.cal_selected = key_date
                     st.rerun()
-    st.markdown("<style>" + "\n".join(rules) + "</style>", unsafe_allow_html=True)
+    st.html("<style>" + "\n".join(rules) + "</style>")
     chosen = st.session_state.cal_selected
     st.subheader(f"📅 {chosen} 업무")
     entries = by_day.get(chosen, [])
@@ -379,17 +327,7 @@ def task_page(data):
                 if st.button("🗑️ 이 업무 삭제", key=f"del_{t['id']}"):
                     if mutate(lambda d: delete_task(d, t["id"]), "업무 삭제 완료") is not None:
                         st.rerun()
-    with st.expander("이전 1일차 JSON 데이터 가져오기 (선택)"):
-        st.warning("시연은 0건에서 시작합니다. 기존 테스트 8건은 자동으로 가져오지 않습니다.")
-        uploaded = st.file_uploader("aivle_tasks.json 선택", type="json", key="importjson")
-        if uploaded and st.button("중복 업무 제외하고 가져오기"):
-            try:
-                other = json.loads(uploaded.getvalue().decode("utf-8-sig"))
-                count = storage().update(lambda d: import_merge(d, other))
-                st.success(f"신규 업무 {count}건을 가져왔습니다.")
-                st.rerun()
-            except Exception as exc:
-                show_error(exc)
+    st.caption("업무는 자동으로 저장되고 AI 비서·대시보드·캘린더에 함께 반영됩니다. 별도의 JSON 파일 업로드는 필요하지 않습니다.")
 
 
 def approved_action(pending):
@@ -659,6 +597,7 @@ def show_share_email():
 def assistant_page(data):
     st.title("AIVLE AI 비서")
     st.caption("자연어·음성·파일 첨부 → AI 제안 → 승인 → 업무·캘린더 동기화")
+    st.caption("AI 답변은 기본적으로 음성으로도 생성됩니다. 자동재생이 막히면 재생 버튼을 누르세요.")
     chat_tab, email_tab = st.tabs(["💬 AI 채팅·음성·첨부", "✉️ 이메일 발송"])
     with chat_tab:
         left,right=st.columns([3,1],gap="large")
@@ -687,29 +626,36 @@ def assistant_page(data):
             st.divider()
             st.markdown("**🎙️ 말하거나 📎 파일을 첨부해서 질문할 수 있어요.**")
             f=st.file_uploader("첨부 파일",type=["txt","md","pdf","docx","mp3","m4a","wav"],key=f"chat_file_{st.session_state.get('file_nonce',0)}")
-            recording=st.audio_input("음성으로 질문하기",key="chat_recorded")
+            recording=st.audio_input("음성으로 질문하기",key=f"chat_recorded_{st.session_state.record_nonce}")
             if recording and st.button("🎙️ 음성을 텍스트로 변환",key="chat_stt"):
                 try:
-                    st.session_state.composer_text=stt(client(),recording.getvalue(),"voice.wav")
-                    st.session_state.voice_transcript=st.session_state.composer_text
+                    transcript = stt(client(), recording.getvalue(), "voice.wav")
+                    st.session_state[f"composer_{st.session_state.composer_nonce}"] = transcript
+                    st.session_state.voice_transcript = transcript
                     st.rerun()
                 except Exception as exc:
                     show_error(exc)
             if st.session_state.get("voice_transcript"):
                 st.caption("인식된 음성: " + st.session_state.voice_transcript)
-            st.text_area("질문 또는 업무 요청",key="composer_text",height=105,
+            editor_key = f"composer_{st.session_state.composer_nonce}"
+            st.text_area("질문 또는 업무 요청",key=editor_key,height=105,
                          placeholder="예: 11월 20일까지 발표자료 등록해 줘 / 첨부한 회의록에서 업무 추출해 줘")
             c1,c2=st.columns(2)
             if c1.button("➤ AI에게 바로 묻기",key="send_chat",type="primary",use_container_width=True):
-                if st.session_state.composer_text.strip() or f:
-                    st.session_state.file_nonce+=1
-                    chat_handle(st.session_state.composer_text,data,f)
+                composed = st.session_state.get(editor_key, "").strip()
+                if composed or f:
+                    st.session_state.file_nonce += 1
+                    st.session_state.composer_nonce += 1
+                    st.session_state.record_nonce += 1
+                    st.session_state.voice_transcript = ""
+                    chat_handle(composed, data, f)
                 else:
                     st.warning("질문을 쓰거나 파일을 첨부해 주세요.")
             if c2.button("✨ 프롬프트 개선",key="improve_chat",use_container_width=True):
-                if st.session_state.composer_text.strip():
+                original = st.session_state.get(editor_key, "").strip()
+                if original:
                     try:
-                        improved=improve_prompt(client(),st.session_state.composer_text)
+                        improved=improve_prompt(client(), original)
                         st.session_state.preview_nonce+=1
                         st.session_state.improved_default=improved
                         st.session_state.improved_visible=True
@@ -725,8 +671,11 @@ def assistant_page(data):
                 approve,cancel=st.columns(2)
                 if approve.button("✅ 개선된 내용으로 바로 질문",key="approve_improved",type="primary",use_container_width=True):
                     st.session_state.improved_visible=False
-                    st.session_state.file_nonce+=1
-                    chat_handle(st.session_state[key],data,f)
+                    st.session_state.file_nonce += 1
+                    st.session_state.composer_nonce += 1
+                    st.session_state.record_nonce += 1
+                    st.session_state.voice_transcript = ""
+                    chat_handle(st.session_state[key], data, f)
                 if cancel.button("개선 취소",key="cancel_improved",use_container_width=True):
                     st.session_state.improved_visible=False
                     st.rerun()
@@ -971,7 +920,7 @@ def bootstrap():
     defaults = {"messages": [], "pending": None, "last_voice": None, "auto_tts": True,
                 "search_on": False, "voice_transcript": "", "email_draft": {},
                 "prompt_result": "", "meeting_result": None, "meeting_nonce": 0,
-                "composer_text": "", "file_nonce": 0, "preview_nonce": 0,
+                "composer_text": "", "file_nonce": 0, "composer_nonce": 0, "record_nonce": 0, "preview_nonce": 0,
                 "improved_default": "", "improved_visible": False,
                 "inline_meeting": None, "inline_meeting_nonce": 0,
                 "tts_error": "", "autoplay_voice": False,
@@ -989,6 +938,9 @@ def main():
     bootstrap()
     store = storage()
     configured_pin = secret("APP_PASSWORD")
+    if store.remote and not configured_pin:
+        st.error("공유 데이터베이스를 연결했다면 APP_PASSWORD를 Secrets에 설정해야 합니다.")
+        st.stop()
     if configured_pin and not st.session_state.get("authenticated"):
         st.title("🔐 AIVLE 업무비서 로그인")
         with st.form("authform"):
@@ -1006,9 +958,9 @@ def main():
         st.markdown("## 💠 AIVLE")
         st.caption("KT AIVLE SCHOOL · AI PERSONAL WORKSPACE")
         st.radio("메뉴", PAGES, key="page")
-        st.toggle("🌙 다크 모드", key="dark_mode", help="밝은 화면은 청록색, 어두운 화면은 차콜·회색으로 전환합니다.")
+        st.caption("🌙 다크 모드: 오른쪽 위 ⋮ → 설정 → 테마 → Dark")
         st.divider()
-        st.caption("업무·캘린더·AI 비서는 동일한 저장소를 함께 사용합니다.")
+        st.caption("업무·캘린더·AI 비서는 같은 저장소에 자동으로 연결됩니다.")
         with st.expander("환경 정보", expanded=False):
             st.write(f"저장 방식: {store.mode}")
             if store.remote:

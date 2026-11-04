@@ -1,10 +1,37 @@
+# Switch appearance from the app's top-right menu → Settings → Theme.
+# Native Streamlit theming changes the WHOLE page and widgets together.
 [theme]
 base = "light"
-primaryColor = "#12A9AD"
-backgroundColor = "#F5FBFB"
-secondaryBackgroundColor = "#E9F6F6"
-textColor = "#113A42"
 font = "sans serif"
+showSidebarBorder = false
+
+[theme.light]
+primaryColor = "#129EA6"
+backgroundColor = "#F4FBFA"
+secondaryBackgroundColor = "#E6F2F1"
+textColor = "#153840"
+borderColor = "#CFE4E2"
+
+[theme.light.sidebar]
+primaryColor = "#C0F8F1"
+backgroundColor = "#0D6973"
+secondaryBackgroundColor = "#155C67"
+textColor = "#F5FFFF"
+borderColor = "#42848B"
+
+[theme.dark]
+primaryColor = "#A0B2BF"
+backgroundColor = "#171D23"
+secondaryBackgroundColor = "#29323B"
+textColor = "#EFF3F5"
+borderColor = "#45525C"
+
+[theme.dark.sidebar]
+primaryColor = "#D3DCE3"
+backgroundColor = "#2A333C"
+secondaryBackgroundColor = "#35404A"
+textColor = "#F0F3F5"
+borderColor = "#56636F"
 
 [server]
 maxUploadSize = 25
