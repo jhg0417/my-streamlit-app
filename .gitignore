@@ -19,3 +19,5 @@ data/*
 !data/.gitkeep
 private_seed/
 *.log
+!chroma_db/chroma.sqlite3
+!data/docs.jsonl
